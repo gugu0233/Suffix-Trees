@@ -1,0 +1,123 @@
+#lang racket
+(require "suffix-tree.rkt")
+(require "etapa1.rkt")
+(require "etapa2.rkt")
+
+(provide (all-defined-out))
+
+;; Această etapă este dedicată aplicațiilor 
+;; arborelui de sufixe:
+;; - găsirea unui șablon într-un text
+;; - cel mai lung subșir comun a două texte
+;; - găsirea unui subșir de lungime dată care se
+;;   repetă în text
+;; Conform convenției din etapele anterioare, un text
+;; este întotdeauna reprezentat ca listă de caractere.
+;; Rezultatele funcțiilor de mai jos sunt de asemenea
+;; reprezentate ca liste de caractere.
+
+
+; TODO 1
+; Implementați funcția substring? care primește un text și
+; un șablon nevid și întoarce true dacă șablonul apare în 
+; text, respectiv false în caz contrar.
+; Observație: ați implementat deja logica principală a
+; acestei căutări în etapa 1, în funcția st-has-pattern?,
+; care este un operator al tipului ST. Acum aveți toate
+; uneltele necesare implementării operatorului corespunzător
+; pentru tipul text (pentru că în etapa 2 ați implementat
+; construcția arborelui de sufixe asociat unui text).
+(define (substring? text pattern)
+  (st-has-pattern? ((text->st text) cst-func) pattern))
+
+; TODO 2
+; Implementați funcția longest-common-substring care primește
+; două texte și determină cel mai lung subșir comun al
+; acestora, folosind algoritmul următor:
+; 1. Construiește arborele de sufixe ST1 pentru primul text.
+; 2. Pentru fiecare sufix din al doilea text (de la cel mai
+;    lung la cel mai scurt), găsește cea mai lungă potrivire 
+;    cu sufixele din primul text, urmând căile relevante în ST1.
+; 3. Rezultatul final este cel mai lung rezultat identificat
+;    la pasul 2 (în caz de egalitate a lungimii, păstrăm
+;    primul șir găsit).
+; Folosiți named let pentru a parcurge sufixele.
+; Observație: pentru sufixele din al doilea text nu dorim 
+; marcajul de final $ pentru a nu crește artificial lungimea 
+; șirului comun cu acest caracter.
+; Hint: Revizitați funcția match-pattern-with-label (etapa 1).
+
+;modific text->st din etapa2 astfel incat sa nu mai am $
+(define text->st1
+  (lambda (text)
+    (lambda (labeling-func)
+      (suffixes->st labeling-func (get-suffixes text) (sort(remove-duplicates text) char<?)))))
+
+;modific ca sa folosesx text->st1
+(define text->cst1
+  (lambda (text)
+    ((text->st1 text) cst-func)))
+
+;functie care gaseste substringul dintre doua cuvinte (unul sub forma de st) 
+(define (func ST pattern L)
+  (if (null? ST)
+      L
+      (if (null? (prfx (car (car ST)) pattern L))
+          (func (cdr ST) pattern L)
+          (append (prfx (car (car ST)) pattern L) (func (cdar ST) (sufix pattern (prfx (car (car ST)) pattern L)) L)))))
+
+;creez o lista doar cu rezultatele apelarii lui func pe toate sufixele
+(define (f1 ST list L)
+  (if (null? list)
+      L
+      (cons (func ST (car list) L) (f1 ST (cdr list) L))))
+
+;iterez prin lista de rezultate (adica doar cu substringurile gasite) si il afisez pe cel mai lung
+(define (iterare list)
+  (let iter ((list list) (L '()) (maxim 0))
+    (cond
+      ((null? list) L)
+      ((> (length (car list)) maxim)
+       (iter (cdr list) (car lis t) (length (car list))))
+      (else
+       (iter (cdr list) L maxim)))))
+
+;apelez functia de iterare in functia principala
+(define (longest-common-substring text1 text2)
+  (iterare (f1 ((text->st1 text1) cst-func) (get-suffixes text2) '())))
+
+
+; TODO 3
+; Implementați funcția repeated-substring-of-given-length
+; care primește un text și un număr natural len și
+; parcurge arborele de sufixe al textului până găsește un
+; subșir de lungime len care se repetă în text.
+; Dacă acest subșir nu există, funcția întoarce false.
+; Obs: din felul în care este construit arborele de sufixe
+; (pe baza alfabetului sortat), rezultatul va fi primul 
+; asemenea subșir din punct de vedere alfabetic.
+; Ideea este următoarea: orice cale în arborele de sufixe
+; compact care se termină cu un nod intern (un nod care 
+; are copii, nu este o frunză) reprezintă un subșir care
+; se repetă, pentru că orice asemenea cale reprezintă un
+; prefix comun pentru două sau mai multe sufixe ale textului.
+; Folosiți interfața definită în fișierul suffix-tree
+; atunci când manipulați arborele.
+
+(define (frunza? nod)
+  (if (null? (cdr nod))
+      #t
+      #f))
+
+(define (elfi ST len)
+  (if (null? ST)
+      #f
+      (if (and (not (null? (get-branch-subtree (first-branch ST)))) (>= (length (get-branch-label (first-branch ST))) len))
+          (take (get-branch-label (first-branch ST)) len)
+          (if (not (null? (get-branch-subtree (first-branch ST))))
+              (elfi (get-branch-subtree (first-branch ST)) len)
+              (elfi (other-branches ST) len)))))
+
+(define (repeated-substring-of-given-length text len)
+  (elfi ((text->st1 text) cst-func) len))
+

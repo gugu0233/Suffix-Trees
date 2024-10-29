@@ -1,0 +1,1 @@
+("8.12" tarm64osx ("a8740356cdbcdd5b9ed1a82def66934472931c5a" . "741e62472e59d53807fca11ced94fcee82d3ce6d") #"/Users/alexandralondraliu/Downloads/etapa4/collection.rkt" #"/Users/alexandralondraliu/Downloads/etapa4/suffix-tree-stream.rkt" (collects #"drracket" #"private" #"drracket-errortrace-key.rkt") (collects #"racket" #"main.rkt") (collects #"racket" #"runtime-config.rkt"))
